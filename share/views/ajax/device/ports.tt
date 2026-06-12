@@ -1,0 +1,577 @@
+[% PROCESS 'externallinks.tt' -%]
+<table id="dp-data-table" class="table table-bordered table-striped" width="100%" cellspacing="0">
+  <thead>
+    <tr>
+      <th></th>
+      [% FOREACH item IN settings.port_columns %]
+      [% NEXT IF item.name == 'c_admin'  %]
+      [% NEXT IF item.name == 'c_links' AND settings.external_links.device_port.size == 0 %]
+      [% NEXT IF item.name == 'c_nodes' AND params.c_nodes AND params.c_neighbors %]
+        [% NEXT UNLESS params.${item.name} %]
+        [% SET th_class = '' %]
+        [% IF (item.name == 'c_port' OR item.name == 'c_descr' OR item.name == 'c_name') %]
+          [% SET th_class = ' class="portsort"' %]
+        [% END %]
+        <th[% th_class | none %]>
+          [% IF item.name == 'c_neighbors' %]
+          [% IF params.c_nodes %]
+          Connected Nodes &amp; Devices
+          [% ELSE %]
+          Connected Devices
+          [% END %]
+          [% ELSE %]
+          [% item.label | html_entity %]
+          [% END %]
+        </th>
+      [% END %]
+    </tr>
+  </thead>
+  <tbody>
+    [% FOREACH row IN results %]
+    [% SET portname = row.port %]
+    <tr
+      [% IF row.subinterface_group %]
+        class="nd_collapsible"
+        data-collapsed-group="[% row.subinterface_group %]"
+        [% IF (params.p_fold_dotzero AND row.is_dot_zero_subinterface)
+            OR params.p_fold_subinterfaces %]
+        data-is-collapsed="true"
+        [% ELSE %]
+        data-is-collapsed="false"
+        [% END %]
+      [% END %] >
+
+      <td class="nd_center-cell nd_devport-icon">
+        [% IF row.up_admin != 'up' %]
+        <i class="icon-remove icon-large"></i>
+        [% ELSIF row.up == 'up' AND row.stp == 'blocking' AND vlans.$portname.vlan_count < 2 %]
+        <i class="icon-ban-circle text-info icon-large"></i>
+        [% ELSIF row.error_disable_cause %]
+        <i class="icon-exclamation-sign text-error icon-large"></i>
+        [% ELSIF row.has_column_loaded('is_free') AND row.is_free %]
+        <i class="icon-circle-arrow-down text-success icon-large"></i>
+        [% ELSIF row.up_admin == 'up' AND (row.up != 'up' AND row.up != 'dormant') %]
+          [% IF params.port_state == 'free' %]
+          <i class="icon-circle-arrow-down text-success icon-large"></i>
+          [% ELSE %]
+          <i class="icon-arrow-down text-error icon-large"></i>
+          [% END %]
+        [% ELSE %]
+        <i class="icon-angle-up text-success icon-large"></i>
+        [% END %]
+        [% IF row.slave_of %]<br/>
+          [% IF row.get_column('agg_master_up_admin') != 'up' %]
+            <small><i class="icon-group muted"></i></small>
+          [% ELSIF row.get_column('agg_master_up') == 'up' %]
+            <small><i class="icon-group text-success"></i></small>
+          [% ELSE %]
+            <small><i class="icon-group text-error"></i></small>
+          [% END %]
+        [% END %]
+      </td>
+
+      [% IF params.c_port %]
+      [% IF params.c_admin AND row.port_acl_service %]
+      [% IF row.up_admin == 'up' %]
+      <td nowrap class="nd_editable-cell" data-action="down"
+        data-order="[% row.port | html_entity %]" data-filter="[% row.port | html_entity %]"
+        data-field="c_port" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+      [% ELSE %]
+      <td nowrap class="nd_editable-cell" data-action="up"
+        data-order="[% row.port | html_entity %]" data-filter="[% row.port | html_entity %]"
+        data-field="c_port" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+      [% END %]
+      [% ELSE %]
+      <td nowrap data-order="[% row.port | html_entity %]" data-filter="[% row.port | html_entity %]">
+      [% END %]
+        <a class="nd_log-icon"
+          href="[% uri_for('/report/portlog') | none %]?q=[% device.ip | uri %]&f=[% row.port | uri %]">
+          <i class="icon-file-text-alt"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="View Port Log"></i>
+        </a>
+        [% IF row.has_subinterface_group %]
+        <span class="nd_log-icon nd_row-collapser-toggle" data-collapsed-group="[% row.port %]">
+          [% IF (params.p_fold_dotzero AND row.has_only_dot_zero_subinterface)
+              OR params.p_fold_subinterfaces %]
+          <i class="icon-list-ol"
+          [% ELSE %]
+          <i class="icon-sort-by-attributes-alt icon-rotate-180"
+          [% END %]
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Toggle Subinterfaces"></i>
+        </span>
+        [% END %]
+      [% IF params.c_admin AND row.port_acl_service %]
+      [% IF row.up_admin == 'up' %]
+        <span class="nd_hand-icon">
+          <i class="icon-bullseye" data-action="bounce"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Bounce Port"></i>
+          <i class="icon-hand-down"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Disable Port"></i>
+        </span>
+      [% ELSE %]
+        <span class="nd_hand-icon">
+          <i class="icon-bullseye" data-action="bounce" style="display: none"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Bounce Port"></i>
+          <i class="icon-hand-up"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Enable Port"></i>
+        </span>
+      [% END %]
+      [% END %]
+        <a class="nd_this-port-only nd_port-only-first" href="[% device_ports | none %]&q=[% params.q | uri %]&f=[% row.port | uri %]&prefer=port">
+          [% IF row.is_master OR row.has_subinterfaces %]
+            <small><i class="icon-group muted"></i></small>&nbsp;
+          [% END %]
+        [% row.port | html_entity %]</a>
+        [% IF row.slave_of %]<br/>
+          <a class="nd_this-port-only" href="[% device_ports | none %]&q=[% params.q | uri %]&f=[% row.slave_of | uri %]&prefer=port">
+          [% row.slave_of | html_entity %]</a>
+        [% END %]
+      </td>
+      [% END %]
+
+      [% IF params.c_descr %]
+      <td nowrap>[% row.descr | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_comment %]
+      <td nowrap>[% row.last_comment | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_type %]
+      <td>[% row.type | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_ifindex %]
+      <td>[% row.ifindex | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_lastchange %]
+      <td>[% row.lastchange_stamp | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_name %]
+      [% IF params.c_admin AND row.port_acl_name %]
+      <td nowrap class="nd_editable-cell" contenteditable="true"
+          data-field="c_name" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+      <i class="icon-edit nd_edit-icon"></i>
+      [% ELSE %]
+      <td nowrap class="nd_editable-cell">
+      [% END %]
+      <div class="nd_editable-cell-content">
+        [% row.name | html_entity %]
+      </div>
+      </td>
+      [% END %]
+
+      [% IF params.c_tags %]
+      <td>
+        [% FOREACH t IN row.filtered_tags.sort %]
+        <span class="badge badge-success">[% t | html_entity %]</span>
+        [% END %]
+      </td>
+      [% END %]
+
+      [% FOREACH config IN settings._extra_device_port_cols %]
+        [% NEXT UNLESS config.position == 'left' AND params.${config.name} %]
+        [% NEXT UNLESS permitted_by_acl(row, config) %]
+
+        [% TRY %]
+          <td>
+          [% INCLUDE "plugin/${config.name}/device_port_column.tt" %]
+          </td>
+        [% CATCH %]
+          [% CLEAR %]
+          [% IF params.c_admin AND config.editable AND row.port_acl_name %]
+            <td nowrap class="nd_editable-cell" contenteditable="true"
+                data-field="[% config.field | html_entity %]" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+            <i class="icon-edit nd_edit-icon"></i>
+          [% ELSE %]
+            <td nowrap class="nd_editable-cell">
+          [% END %]
+            <div class="nd_editable-cell-content">
+              [% row.get_column(config.field) | html_entity %]
+            </div>
+            </td>
+        [% END %]
+
+      [% END %]
+
+      [% IF params.c_links AND settings.external_links.device_port.size > 0 %]
+      <td>
+        [% INCLUDE external_device_port_links
+          item = row
+          d = device
+        %]
+      </td>
+      [% END %]
+
+      [% IF params.c_speed_admin %]
+      <td>[% row.speed_admin | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_speed %]
+      <td>[% row.speed_running | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_duplex_admin %]
+      <td>[% row.duplex_admin.ucfirst | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_duplex %]
+      <td>[% row.duplex.ucfirst | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_error %]
+      <td>[% row.error_disable_cause | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_mac %]
+      <td>[% row.mac | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_mtu %]
+      <td>[% row.mtu | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_pvid %]
+      [% IF params.c_admin AND row.port_acl_pvid %]
+      <td class="nd_editable-cell" contenteditable="true" data-default="[% row.vlan | html_entity %]"
+        data-field="c_pvid" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+      <i class="icon-edit nd_edit-icon"></i>
+      <div class="nd_editable-cell-content">
+        [% IF row.vlan AND row.vlan > 0 %][% row.vlan | html_entity %][% END %]
+      </div>
+      </td>
+      [% ELSE %]
+      <td>
+        [% IF row.vlan AND row.vlan > 0 %]
+        <a class="nd_linkcell"
+          [% IF params.p_vlan_names %]
+            href="[% uri_for('/search') | none %]?tab=vlan&q=[% row.get_column('native_vlan_name') | uri %]">
+              [% row.get_column('native_vlan_name') | html_entity %]</a>
+          [% ELSE %]
+            href="[% uri_for('/search') | none %]?tab=vlan&q=[% row.vlan | uri %]">
+              [% row.vlan | html_entity %]</a>
+          [% END %]
+        [% END %]
+      </td>
+      [% END %]
+      [% END %]
+
+      [% IF params.c_vmember %]
+      <td>
+        [% IF vlans.$portname.size %]
+        [% IF vlans.$portname.vlan_count <= settings.devport_vlan_limit %]
+          [% SET vlan_count = vlans.$portname.vlan_count %]
+          [% IF params.p_vlan_names %][% SET vlanlist = vlans.$portname.vlan_name_set %]
+            [% ELSE %][% SET vlanlist = vlans.$portname.vlan_set %][% END %]
+          [% IF vlan_count > 10 %] [%# TODO make this a settable variable %]
+            <div class="nd_vlan-total">([% vlan_count %])</div><span class="nd_linkcell nd_collapse-vlans">
+            <div class="nd_arrow-up-down-left icon-chevron-up icon-large"></div>Show VLANs</span>
+            <div class="nd_collapsing nd_collapse-pre-hidden">
+          [% END %]
+          [% FOREACH vlan IN vlanlist %]
+            <a href="[% uri_for('/search') %]?tab=vlan&q=[% vlan | uri %]">[% vlan | html_entity %]</a>
+            [% ', ' IF NOT loop.last %]
+          [% END %]
+          [% IF vlan_count > 10 %] [%# TODO make this a settable variable %]
+            </div>
+          [% END %]
+        [% ELSE %]
+        <i class="icon-asterisk text-warning"></i> ([% vlans.$portname.vlan_count %] is too many to list)
+        [% END %]
+        [% END %]
+      </td>
+      [% END %]
+
+      [% IF params.c_power %]
+        [% IF row.power %]
+          [% IF row.power.admin == 'true' %]
+            [% IF params.c_admin AND row.port_acl_service %]
+              <td nowrap data-action="false"
+                data-field="c_power" data-for-device="[% device.ip | html_entity %]"
+                data-for-port="[% row.port | html_entity %]">
+
+                <i class="icon-off nd_power-icon nd_power-on"
+                  rel="tooltip" data-placement="top" data-offset="3"
+                  data-animation="" data-title="Disable Power"></i>
+            [% ELSE %]
+              <td nowrap>
+                <i class="icon-off nd_power-on"></i>
+            [% END %]
+                <span>
+                [% IF row.power.power AND row.power.power > 0 %]
+                  [% row.power.power | html_entity %]&nbsp;mW
+                [% ELSE %]
+                  ([% row.power.status | html_entity %])
+                [% END %]
+                </span>
+          [% ELSE %]
+            [% IF params.c_admin AND row.port_acl_service %]
+              <td nowrap data-action="true"
+                data-field="c_power" data-for-device="[% device.ip | html_entity %]"
+                data-for-port="[% row.port | html_entity %]">
+
+                <i class="icon-off nd_power-icon"
+                  rel="tooltip" data-placement="top" data-offset="3"
+                  data-animation="" data-title="Enable Power"></i>
+            [% ELSE %]
+              <td>
+                <i class="icon-off"></i>
+            [% END %]
+          [% END %]
+              </td>
+        [% ELSE %]
+          <td></td>
+        [% END %]
+      [% END %]
+
+      [% IF params.c_ssid %]
+      <td>[% row.ssid.ssid | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_nac_summary %]
+      <td>
+      [% IF row.up == 'up' AND (row.pae_authconfig_port_status OR row.pae_authconfig_state) %]
+        <i class="icon-[% row.pae_authconfig_port_status == 'authorized' ? 'ok-sign' : 'ban-circle' %]"
+          rel="tooltip" data-placement="top" data-offset="3" data-animation="" data-title="[% row.pae_authconfig_port_status %]"></i>
+        <i class="icon-[% row.pae_authconfig_state == 'authenticated' ? 'link' : 'unlink' %]"
+          rel="tooltip" data-placement="top" data-offset="3" data-animation="" data-title="[% row.pae_authconfig_state %]"></i>
+        <i class="icon-[% row.pae_authsess_mab ? 'laptop' : 'user' %]"></i>
+        [% SET sessuser = (row.pae_authsess_user_net_mac.$mac_format_call || row.pae_authsess_user.remove(settings.domain_suffix)) %]
+        <a href="[% search_node | none %]&q=[% sessuser | uri %]">[% sessuser | html_entity %]</a>
+      [% END %]
+      </td>
+      [% END %]
+
+      [% FOREACH config IN settings._extra_device_port_cols %]
+        [% NEXT UNLESS config.position == 'mid' AND params.${config.name} %]
+        [% NEXT UNLESS permitted_by_acl(row, config) %]
+
+        [% TRY %]
+          <td>
+          [% INCLUDE "plugin/${config.name}/device_port_column.tt" %]
+          </td>
+        [% CATCH %]
+          [% CLEAR %]
+          [% IF params.c_admin AND config.editable AND row.port_acl_name %]
+            <td nowrap class="nd_editable-cell" contenteditable="true"
+                data-field="[% config.field | html_entity %]" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+            <i class="icon-edit nd_edit-icon"></i>
+          [% ELSE %]
+            <td nowrap class="nd_editable-cell">
+          [% END %]
+            <div class="nd_editable-cell-content">
+              [% row.get_column(config.field) | html_entity %]
+            </div>
+            </td>
+        [% END %]
+
+      [% END %]
+
+      [% IF params.c_nodes OR params.c_neighbors %]
+      <td>
+        [% IF device.vendor AND device.vendor.lower.match('fortinet') %]
+          [% SET fortinet_dynamic_vlan = '' %]
+          [% SET fortinet_dynamic_count = 0 %]
+          [% IF vlans.$portname.size AND vlans.$portname.vlan_set.size %]
+          [% FOREACH member_vlan IN vlans.$portname.vlan_set %]
+            [% IF member_vlan AND member_vlan != row.vlan %]
+              [% SET fortinet_dynamic_vlan = member_vlan %]
+              [% SET fortinet_dynamic_count = fortinet_dynamic_count + 1 %]
+            [% END %]
+          [% END %]
+          [% END %]
+          [% SET fortinet_dynamic_vlan = '' UNLESS fortinet_dynamic_count == 1 %]
+        [% END %]
+        [% IF params.c_neighbors AND (row.remote_ip OR row.is_uplink) %]
+          [% IF row.get_column('neighbor_ip') %]
+            <i class="icon-link[% ' text-warning' IF row.manual_topo %]"></i>
+            [% IF row.remote_is_phone %]
+              <i class="icon-phone"></i>&nbsp;
+            [% ELSIF row.remote_is_wap %]
+              <i class="icon-rss"></i>&nbsp;
+            [% END %]
+            <a href="[% device_ports | none %]&q=[% row.get_column('neighbor_ip') | uri %]">
+                [% row.get_column('neighbor_dns').remove(settings.domain_suffix) || row.get_column('neighbor_ip') | html_entity %]</a>
+            [% IF row.remote_port %]
+                -
+                <a href="[% device_ports | none %]&q=[% row.get_column('neighbor_ip') | uri %]&f=[% row.remote_port | uri %]&prefer=port">
+                    [% row.remote_port | html_entity %]</a>
+            [% END %]
+            [% IF fortinet_dynamic_vlan %]
+                (on vlan [% fortinet_dynamic_vlan | html_entity %])
+            [% END %]
+            <br/>
+            [% IF params.n_inventory and row.remote_inventory %]
+              [% row.remote_inventory | html_entity %]<br/>
+            [% END %]
+            [% IF params.n_detailed_inventory %]
+              ([% 'IP: '_ row.remote_ip IF row.remote_ip %]
+              [% ' id: '_ row.remote_id IF row.remote_id %]
+              [% ' type: '_ row.remote_type IF row.remote_type %])<br/>
+            [% END %]
+          [% ELSIF row.remote_ip %]
+            <i class="icon-[% row.remote_is_discoverable ? 'unlink' : 'eye-close' %] text-error"></i>&nbsp;
+            [% IF row.remote_is_phone %]
+              <i class="icon-phone"></i>&nbsp;
+            [% ELSIF row.remote_is_wap %]
+              <i class="icon-rss"></i>&nbsp;
+            [% END %]
+            <a href="[% search_node | none %]&q=[% row.remote_ip | uri %]">[% row.remote_dns || row.remote_ip | html_entity %]</a>
+            [% IF row.remote_port %]
+              - [% row.remote_port | html_entity %]
+            [% END %]
+            [% IF fortinet_dynamic_vlan %]
+              (on vlan [% fortinet_dynamic_vlan | html_entity %])
+            [% END %]
+            <br/>
+            [% IF params.n_inventory and row.remote_inventory %]
+              [% row.remote_inventory | html_entity %]<br/>
+            [% END %]
+            [% IF params.n_detailed_inventory and (row.remote_id or row.remote_type) %]
+              ([% 'id: '_ row.remote_id IF row.remote_id %]
+              [% ' type: '_ row.remote_type IF row.remote_type %])<br/>
+            [% END %]
+          [% ELSE %]
+            <i class="icon-unlink text-error"></i>&nbsp; (possible uplink)
+          [% END %]
+        [% END %]
+        [% IF params.c_nodes %]
+        [% FOREACH node IN row.$nodes %]
+          [% '<br/>' IF (row.remote_ip OR row.is_uplink) OR NOT loop.first %]
+          [% '<i class="icon-book"></i>&nbsp; ' IF NOT node.active %]
+          [% '<i class="icon-signal"></i>&nbsp;' IF node.wireless.defined %]
+          <a href="[% search_node | none %]&q=[% node.net_mac.$mac_format_call | uri %]">
+            [% node.net_mac.$mac_format_call | html_entity %]</a>
+          [% IF (node.vlan > 0) && (node.vlan != row.vlan) %]
+            (on vlan [% node.vlan | html_entity %])
+          [% ELSIF fortinet_dynamic_vlan %]
+            (on vlan [% fortinet_dynamic_vlan | html_entity %])
+          [% END %]            
+          [% IF params.n_ssid AND node.wireless.defined %]
+            (SSID:
+            [% FOREACH wlan IN node.wireless %]
+              <a href="[%+ uri_for('/report/portssid') %]?ssid=[% wlan.ssid | uri %]">[% wlan.ssid | html_entity %]</a>
+            [% END %]
+            )
+          [% END %]
+          [% IF params.n_vendor AND node.manufacturer.defined %]
+            (Vendor:
+            [% FOREACH manufacturer IN node.manufacturer %]
+              <a href="[%+ uri_for('/report/nodevendor') %]?vendor=[% manufacturer.abbrev | uri %]">[% manufacturer.abbrev | html_entity %]</a>
+            [% END %]
+            )
+          [% END %]
+          [% ' (' _ node.time_last_age _ ')' IF params.n_age %]
+          [% IF params.n_ip4 OR params.n_ip6 %]
+            [% FOREACH ip IN node.$ips %]
+            <br/>&nbsp; [% '<i class="icon-book"></i>&nbsp; ' IF NOT ip.active %]
+              [% SET dns = ip.dns %]
+              [% IF dns %]
+              <a href="[% search_node | none %]&q=[% ip.ip | uri %]">[% dns | html_entity %] ([% ip.ip | html_entity %])</a>
+              [% ELSE %]
+              <a href="[% search_node | none %]&q=[% ip.ip | uri %]">[% ip.ip | html_entity %]</a>
+              [% END %]
+            [% END %]
+          [% END %]
+          [% IF params.n_netbios %]
+            [% FOREACH nbt IN node.netbios %]
+            <br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\\<a href="[% uri_for('/report/netbios') | none %]?domain=[% nbt.domain | uri %]" title="Nodes in this Domain">[% nbt.domain | html_entity %]</a>\<a href="[% search_node | none %]&q=[% nbt.nbname | uri %]">[% nbt.nbname | html_entity %]</a>
+            <br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[% nbt.nbuser || '[No User]' | html_entity %]@<a href="[% search_node | none %]&q=[% nbt.ip | uri %]">[% nbt.ip | html_entity %]</a>
+            [% END %]
+          [% END %]
+        [% END %]
+        [% END %]
+        [% IF params.c_admin AND settings.portctl_topology AND row.port_acl_service %]
+        <a class="nd_log-icon"
+          href="[% uri_for('/admin/topology') | none %]?dev1=[% device.ip | uri %]&port1=[% row.port | uri %]">
+          <i class="icon-link text-warning"
+            rel="tooltip" data-placement="top" data-offset="3"
+            data-animation="" data-title="Manual Topology"></i>
+        </a>
+        [% END %]
+      </td>
+      [% END %]
+
+      [% IF params.c_stp %]
+      <td>[% row.stp | html_entity %]</td>
+      [% END %]
+
+      [% IF params.c_up %]
+      <td>
+        [% row.up_admin.ucfirst | html_entity %] / [% row.up.ucfirst | html_entity %]
+      </td>
+      [% END %]
+
+      [% FOREACH config IN settings._extra_device_port_cols %]
+        [% NEXT UNLESS config.position == 'right' AND params.${config.name} %]
+        [% NEXT UNLESS permitted_by_acl(row, config) %]
+
+        [% TRY %]
+          <td>
+          [% INCLUDE "plugin/${config.name}/device_port_column.tt" %]
+          </td>
+        [% CATCH %]
+          [% CLEAR %]
+          [% IF params.c_admin AND config.editable AND row.port_acl_name %]
+            <td nowrap class="nd_editable-cell" contenteditable="true"
+                data-field="[% config.field | html_entity %]" data-for-device="[% device.ip | html_entity %]" data-for-port="[% row.port | html_entity %]">
+            <i class="icon-edit nd_edit-icon"></i>
+          [% ELSE %]
+            <td nowrap class="nd_editable-cell">
+          [% END %]
+            <div class="nd_editable-cell-content">
+              [% row.get_column(config.field) | html_entity %]
+            </div>
+            </td>
+        [% END %]
+
+      [% END %]
+    </tr>
+    [% END %]
+  </tbody>
+</table>
+
+[% IF params.c_admin AND user_has_role('port_control', device.ip) %]
+<div id="nd_portlog" class="nd_modal nd_deep-horizon modal hide fade" tabindex="-1"
+    role="dialog" aria-hidden="true">
+  <div class="modal-body">
+    <blockquote>
+      <ul><li><p>Please provide a reason for changing the Port Configuration</p></li></ul>
+    </blockquote>
+    <select id="nd_portlog-reason" class="input-block-level" name="reason">
+      [% FOREACH pair IN settings.port_control_reasons.pairs %]
+        <option[% ' selected="selected"' IF pair.key == 'other' %] value="[% pair.key | html_entity %]">
+          [% pair.value | html_entity %]</option>
+      [% END %]
+    </select>
+    <textarea id="nd_portlog-log" class="input-block-level" rows="2" name="log"
+      placeholder="Enter a log message"></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+    <button id="nd_portlog-submit" class="btn btn-info" data-dismiss="modal">Continue</button>
+  </div>
+</div>
+[% END %]
+
+<script>
+$(document).ready(function() {
+    $('#dp-data-table').dataTable({
+        "columnDefs": [
+            { "sortable": false, "targets": 0 },
+            { "searchable": false, "targets": 0 },
+            { "type": 'portsort', "targets": [ 'portsort' ] }
+        ],
+        "order": [[ 1, 'asc' ]],
+[% INCLUDE 'ajax/datatabledefaults.tt' -%]
+    } );
+} );
+</script>

@@ -1,0 +1,21 @@
+site_local_files: true
+
+extra_worker_plugins:
+  - "X::Discover::VLANs::FortinetVlans"
+  - "X::Discover::Neighbors::FortinetNeighbors"
+  - "X::Discover::PortProperties::FortinetPortProperties"
+  - "X::Discover::Properties::FortinetProperties"
+  - "X::Macsuck::Nodes::FortinetNodes"
+
+device_modules:
+  - class: SNMP::Info::Layer3::Fortinet
+
+device_auth:
+  - tag: fortinet_api_credentials
+    only:
+      - vendor:fortinet
+    username: "FORTINET_API_USERNAME"
+    password: "FORTINET_API_PASSWORD"
+    # Optional when using FortiGate controller endpoints:
+    # host: "FORTIGATE_HOST_OR_IP"
+    # port: 443
