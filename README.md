@@ -187,6 +187,18 @@ Neighbor and auxiliary Fortinet discovery data may use additional Fortinet monit
 - `share/views/ajax/device/ports.tt` is a full template override. Recheck it after Netdisco upgrades because upstream template changes may need to be merged.
 - `SNMP::Info::Layer3::Fortinet` must be available in the Netdisco installation.
 
+## Privacy And Sanitization
+
+This repository is intended to be reusable in any Netdisco deployment. It does not include environment-specific data such as:
+
+- real Netdisco deployment configuration;
+- production credentials or API tokens;
+- customer hostnames, domains or device names;
+- real IP addresses or MAC addresses;
+- exported Netdisco database content.
+
+All configuration values in the examples are placeholders and must be replaced with deployment-specific values before use.
+
 ## Suggested Schedule
 
 If endpoint VLAN accuracy matters throughout the day, run Fortinet VLAN discovery at a similar cadence to macsuck.
@@ -199,3 +211,7 @@ macsuck for FortiSwitch devices: every 2 hours
 ```
 
 This keeps VLAN membership and endpoint node VLANs aligned without changing the intended role of either Netdisco workflow.
+
+## License
+
+This project is distributed under the GNU General Public License v3.0. See `LICENSE` for details.
